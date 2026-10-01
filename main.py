@@ -12,6 +12,8 @@ PATCH   /<code>     修改短链
 
 request: {"url": "...", "expire_in" : ...}
 response: {"code": "...", "short_url": "..."}, 201 Created
+        /{"code": "...", "short_url": "..."}, 200 OK
+        /500 Internal Server Error
 
 2. GET /<code>
 
