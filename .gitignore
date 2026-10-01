@@ -14,5 +14,4 @@ wheels/
 .vscode/
 .pytest_cache/
 *.db
-test*
 .coverage
