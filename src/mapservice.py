@@ -81,10 +81,21 @@ class MapService:
         Returns:
             Tuple[bool, str]: 是否发生创建, 短链
         """
-        short = self.__generate(raw)
-
         with self.session_factory() as session:
             try:
+                exist = (session.query(Url)
+                         .filter(Url.original_url == raw)
+                         .one_or_none())
+                if exist:
+                    return (False, exist.code)
+
+                short = self.__generate(raw)
+                
+                obj = (session.query(Url)
+                 .filter(Url.code == short)
+                 .one_or_none())
+                if (obj and obj.original_url != raw):
+                    pass
                 session.add(Url(
                     original_url = raw,
                     code = short,
@@ -112,7 +123,7 @@ class MapService:
                 result = (session.query(Url)
                     .filter(Url.code == code)
                     .one())
-                if (result.expires_at < datetime.now()) :
+                if result.expires_at < datetime.now() :
                     return self.NoneType.EXPIRED
                 return result.original_url
             except NoResultFound:
@@ -127,7 +138,16 @@ class MapService:
         Returns:
             bool: 是否成功
         """
-        ...
+        with self.session_factory() as session:
+            try:
+                obj = (session.query(Url)
+                    .filter(Url.code == code)
+                    .one())
+                session.delete(obj)
+                session.commit()
+                return True
+            except NoResultFound:
+                return False
 
     def patch(self,
               code : str,
@@ -144,4 +164,14 @@ class MapService:
         Returns:
             Union[Tuple[str, str], NoneType]: 新的网站和对应的短链/ 错误状态
         """
-        ...
+        with self.session_factory() as session:
+            try:
+                obj = (session.query(Url)
+                       .filter(Url.code == code)
+                       .one())
+                obj.original_url = new_url
+                obj.expires_at = datetime.now() + timedelta(seconds=new_expire_in)
+                session.commit()
+                return (new_url, code)
+            except NoResultFound:
+                return self.NoneType.UNKNOWN

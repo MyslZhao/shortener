@@ -47,14 +47,14 @@ def test_patch_expired_and_get(service : MapService):
 
 def test_remove_and_get(service : MapService):
     code = service.add("https://github.com", 600)
-    assert service.remove(code) is True
-    assert service.get(code) == MapService.NoneType.UNKNOWN
-    assert service.remove(code) is False
+    assert service.remove(code[1]) is True
+    assert service.get(code[1]) == MapService.NoneType.UNKNOWN
+    assert service.remove(code[1]) is False
 
 def test_expired_and_get(service : MapService):
     code = service.add("https://github.com", 1)
     sleep(2)
-    assert service.get(code) == MapService.NoneType.EXPIRED
+    assert service.get(code[1]) == MapService.NoneType.EXPIRED
 
 def test_get_unknown_code(service : MapService):
     assert service.get("not_exist") == MapService.NoneType.UNKNOWN
