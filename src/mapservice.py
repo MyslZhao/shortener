@@ -27,7 +27,7 @@ class Url(Base):
 
     __tablename__ = 'url'
     id : Mapped[int] = mapped_column(Integer, primary_key=True)
-    original_url : Mapped[str] = mapped_column(String(50), unique = True)
+    url : Mapped[str] = mapped_column(String(50), unique = True)
     code : Mapped[str] = mapped_column(String, unique = True)
     create_at : Mapped[datetime] = mapped_column(DateTime)
     expires_at : Mapped[datetime] = mapped_column(DateTime)
@@ -38,7 +38,7 @@ class Url(Base):
     def __repr__(self):
         return ("<Url(" +
             f"id='{self.id}'," +
-            f"original_url='{self.original_url}'," +
+            f"url='{self.url}'," +
             f"code='{self.code}'," +
             f"create_at='{self.create_at}'," +
             f"expires_at='{self.expires_at}')>")
@@ -84,20 +84,20 @@ class MapService:
         with self.session_factory() as session:
             try:
                 exist = (session.query(Url)
-                         .filter(Url.original_url == raw)
+                         .filter(Url.url == raw)
                          .one_or_none())
                 if exist:
                     return (False, exist.code)
 
                 short = self.__generate(raw)
-                
+
                 obj = (session.query(Url)
                  .filter(Url.code == short)
                  .one_or_none())
-                if (obj and obj.original_url != raw):
+                if (obj and obj.url != raw):
                     pass
                 session.add(Url(
-                    original_url = raw,
+                    url = raw,
                     code = short,
                     create_at = datetime.now(),
                     expires_at = (datetime.now() +
@@ -125,7 +125,7 @@ class MapService:
                     .one())
                 if result.expires_at < datetime.now() :
                     return self.NoneType.EXPIRED
-                return result.original_url
+                return result.url
             except NoResultFound:
                 return self.NoneType.UNKNOWN
 
@@ -169,7 +169,7 @@ class MapService:
                 obj = (session.query(Url)
                        .filter(Url.code == code)
                        .one())
-                obj.original_url = new_url
+                obj.url = new_url
                 obj.expires_at = datetime.now() + timedelta(seconds=new_expire_in)
                 session.commit()
                 return (new_url, code)

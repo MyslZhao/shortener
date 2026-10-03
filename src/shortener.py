@@ -1,11 +1,14 @@
 """
 Shortener Flask应用
+
 接口文档:
-方法        路径        作用
-POST    /shorten    创建短链
-GET     /<code>     重定向(到源)
-DELETE  /<code>     删除短链
-PATCH   /<code>     修改短链
+
+|   方法   |    路径    |   作用   |
+|----------|-----------|-----------|
+|   POST   |  /short |  创建短链  |
+|   GET    |  /`code`  |重定向(到源)|
+|   DELETE |  /`code`  |  删除短链  |
+|   PATCH  |  /`code`  |  修改短链  |
 
 接口细节:
 1. POST /short
@@ -15,45 +18,37 @@ response: {"code": "...", "url": "..."}, 201 Created
         /{"code": "...", "url": "..."}, 200 OK
         /500 Internal Server Error
 
-2. GET /<code>
+2. GET /`code`
 
 response: 302 Found/404 Not Found/410 Gone
 
-3. DELETE /<code>
+3. DELETE /`code`
 
 response: 204 No Content/404 Not Found
 
-4. PATCH /<code>
+4. PATCH /`code`
 
 request: {"url": "..."}/ {"expires_in": ...}
-response: {"code": "...", "original_url": "..."}, 200
+response: {"code": "...", "url": "..."}, 200
         /404 Not Found
         /400 Bad Request
         /410 Gone
 
 """
 from flask import Flask, request, jsonify, abort, redirect
-from mapservice import MapService
+import mapservice
 
-def create_app(service : MapService) -> Flask:
+def create_app(service : mapservice.MapService) -> Flask:
     """创建Shortener应用
 
     Args:
-        service (MapService): 业务层
+        service (mapservice.MapService): 业务层
 
     Returns:
         Flask: Shortener 应用
     """
 
     app = Flask(__name__)
-    @app.route("/")
-    def hello():
-        """
-        测试
-
-        """
-
-        return "ok"
 
     @app.route("/short", methods = ['POST'])
     def short():

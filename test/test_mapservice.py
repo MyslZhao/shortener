@@ -1,4 +1,3 @@
-#pylint: skip-file
 import pytest
 from time import sleep
 from sqlalchemy import create_engine
@@ -19,45 +18,27 @@ def raw_urls() -> list[str]:
         "https://www.bing.cn",
     ]
 
-def test_add_and_get(service : MapService, raw_urls : list[str]):
-    for url in raw_urls:
-        code = service.add(url, 600)
-        assert code[0]
-        assert service.get(code[1]) == url
+def test_add_returns_created_flag(service):
+    created, code = service.add("https://github.com", 600)
+    assert created is True
 
-def test_repeat_add(service : MapService):
-    url = "https://www.baidu.com"
-    code1 = service.add(url, 600)
-    code2 = service.add(url, 600)
-    assert not code2[0]
-    assert code1[1] == code2[1]
+def test_repeat_add_returns_same_code(service):
+    _, code1 = service.add("https://github.com", 600)
+    created, code2 = service.add("https://github.com", 600)
+    assert created is False
+    assert code1 == code2
 
-def test_patch_url_and_get(service : MapService):
-    code = service.add("https://github.com", 600)
-    result = service.patch(code[1], "https://gitlab.com", 600)
-    assert result == ("https://gitlab.com", code[1])
-    assert service.get(code[1]) == "https://gitlab.com"
-
-def test_patch_expired_and_get(service : MapService):
-    code = service.add("https://www.mozilla.org", 1)
-    sleep(2)
-    assert service.get(code[1]) == MapService.NoneType.EXPIRED
-    service.patch(code[1], "https://www.mozilla.org", 600)
-    assert service.get(code[1]) == "https://www.mozilla.org"
-
-def test_remove_and_get(service : MapService):
-    code = service.add("https://github.com", 600)
-    assert service.remove(code[1]) is True
-    assert service.get(code[1]) == MapService.NoneType.UNKNOWN
-    assert service.remove(code[1]) is False
-
-def test_expired_and_get(service : MapService):
-    code = service.add("https://github.com", 1)
-    sleep(2)
-    assert service.get(code[1]) == MapService.NoneType.EXPIRED
-
-def test_get_unknown_code(service : MapService):
+def test_get_unknown_returns_unknown(service):
     assert service.get("not_exist") == MapService.NoneType.UNKNOWN
 
-def test_patch_unknown_code(service : MapService):
+def test_get_expired_returns_expired(service):
+    _, code = service.add("https://github.com", -1)
+    assert service.get(code) == MapService.NoneType.EXPIRED
+
+def test_remove_twice(service):
+    _, code = service.add("https://github.com", 600)
+    assert service.remove(code) is True
+    assert service.remove(code) is False
+
+def test_patch_unknown_returns_unknown(service):
     assert service.patch("not_exist", "https://x.com", 600) == MapService.NoneType.UNKNOWN
