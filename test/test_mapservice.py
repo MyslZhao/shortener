@@ -1,7 +1,7 @@
-import pytest
 from time import sleep
+import pytest
 from sqlalchemy import create_engine
-from mapservice import MapService, Url
+from src.mapservice import MapService, Url
 
 @pytest.fixture
 def service() -> MapService:

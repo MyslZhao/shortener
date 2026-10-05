@@ -11,5 +11,16 @@ dependencies = [
     "xxhash>=4.0.1",
 ]
 
+[tool.uv]
+package = false
+
+[tool.pylint.main]
+load-plugins = ["pylint_per_file_ignores"]
+
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+
+[tool.pylint.'messages control']
+per-file-ignores = [
+    "test/*.py:missing-function-docstring, missing-module-docstring, unused-argument, redefined-outer-name, protected-access"
+]

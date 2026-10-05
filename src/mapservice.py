@@ -64,13 +64,13 @@ class MapService:
         self.session_factory = sessionmaker[Session](engine) # pylint: disable=unsubscriptable-object
 
     def __generate(self, raw : str) -> str :
-        """自动生成短链
+        """自动生成短链源链
 
         Args:
             raw (str): 原网址
         """
         semi = encode(xxh3_64_intdigest(raw.encode()))
-        return semi[0:6]
+        return semi
 
     def add(self, raw : str, expire_time : int) -> Tuple[bool, str]:
         """新增记录
@@ -89,24 +89,28 @@ class MapService:
                 if exist:
                     return (False, exist.code)
 
-                short = self.__generate(raw)
+                short_source = self.__generate(raw)
+                i = 0
 
-                obj = (session.query(Url)
-                 .filter(Url.code == short)
-                 .one_or_none())
-                if (obj and obj.url != raw):
-                    pass
+                # 若碰撞则位移
+                while (session.query(Url)
+                 .filter(Url.code == short_source[i:i + 6])
+                 .one_or_none()):
+                    if short_source[i + 7]:
+                        i += 1
                 session.add(Url(
                     url = raw,
-                    code = short,
+                    code = short_source[i:i + 6],
                     create_at = datetime.now(),
                     expires_at = (datetime.now() +
                                   timedelta(seconds=expire_time))
                 ))
                 session.commit()
-                return (True, short)
+                return (True, short_source[i:i + 6])
             except IntegrityError:
-                return (False, short)
+                return (False, short_source[i:i + 6])
+            except IndexError:
+                return (False, "")
 
 
     def get(self, code : str) -> Union[str, NoneType]:

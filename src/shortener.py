@@ -16,6 +16,8 @@ Shortener Flask应用
 request: {"url": "...", "expire_in" : ...}
 response: {"code": "...", "url": "..."}, 201 Created
         /{"code": "...", "url": "..."}, 200 OK
+        /400 Bad Request
+        /422 Unprocessable Content
         /500 Internal Server Error
 
 2. GET /`code`
@@ -32,6 +34,7 @@ request: {"url": "..."}/ {"expires_in": ...}
 response: {"code": "...", "url": "..."}, 200
         /404 Not Found
         /400 Bad Request
+        /422 Unprocessable Content
         /410 Gone
 
 """
