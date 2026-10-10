@@ -83,6 +83,8 @@ class MapService:
         """
         with self.session_factory() as session:
             try:
+                if (len(raw) > 50) :
+                    return (False, "")
                 exist = (session.query(Url)
                          .filter(Url.url == raw)
                          .one_or_none())
@@ -98,6 +100,8 @@ class MapService:
                  .one_or_none()):
                     if short_source[i + 7]:
                         i += 1
+                    else :
+                        raise IndexError
                 session.add(Url(
                     url = raw,
                     code = short_source[i:i + 6],
@@ -155,15 +159,15 @@ class MapService:
 
     def patch(self,
               code : str,
-              new_url : str,
-              new_expire_in : int
+              target : str,
+              param : str | int
               ) -> Union[Tuple[str, str], NoneType]:
         """更改记录
 
         Args:
             code (str): 短链
-            new_url (str): 新的网址
-            new_expire_in (int): 新的过期时间
+            target (str): 更改项
+            param (str | int): 目标值
 
         Returns:
             Union[Tuple[str, str], NoneType]: 新的网站和对应的短链/ 错误状态
@@ -173,9 +177,15 @@ class MapService:
                 obj = (session.query(Url)
                        .filter(Url.code == code)
                        .one())
-                obj.url = new_url
-                obj.expires_at = datetime.now() + timedelta(seconds=new_expire_in)
+                if (obj.expires_at <= datetime.now()):
+                    return self.NoneType.EXPIRED
+
+                match target:
+                    case "url":
+                        obj.url = str(param)
+                    case "expire_in":
+                        obj.expires_at = datetime.now() + timedelta(seconds=int(param))
                 session.commit()
-                return (new_url, code)
+                return (obj.url, code)
             except NoResultFound:
                 return self.NoneType.UNKNOWN

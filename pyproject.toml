@@ -15,6 +15,7 @@ dependencies = [
 package = false
 
 [tool.pylint.main]
+init-hook = "import sys; sys.path.append('src')"
 load-plugins = ["pylint_per_file_ignores"]
 
 [tool.pytest.ini_options]

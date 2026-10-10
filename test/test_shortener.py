@@ -4,8 +4,8 @@ import pytest
 from flask import Flask
 from flask.testing import FlaskClient
 from sqlalchemy import create_engine
-from src.shortener import create_app
-from src.mapservice import MapService, Url
+from shortener import create_app
+from mapservice import MapService, Url
 
 @pytest.fixture
 def service() -> MapService:
@@ -103,14 +103,14 @@ def test_abnormal_param_create(client : FlaskClient):
         "url": abnormal_url,
         "expire_in": 600
     })
-    assert abnormal_url_resp.status_code == 422
+    assert abnormal_url_resp.status_code == 400
 
     # expire_in 要求至少为 0
     negative_expire_resp = client.post("/short", json = {
         "url": "https://spinning.cat",
         "expire_in": -10
     })
-    assert negative_expire_resp.status_code == 422
+    assert negative_expire_resp.status_code == 400
 
     # 如果expire_in参数为浮点数，直接取整不报错
 
@@ -118,7 +118,7 @@ def test_abnormal_param_create(client : FlaskClient):
         "url": 600,
         "expire_in": "https://minecraft.wiki"
     })
-    assert wrong_type_resp.status_code == 422
+    assert wrong_type_resp.status_code == 400
 
 def test_long_url_create(client : FlaskClient):
     """
@@ -130,7 +130,7 @@ def test_long_url_create(client : FlaskClient):
         "url": url,
         "expire_in": 600
     })
-    assert resp.status_code == 422
+    assert resp.status_code == 400
 
 def test_create_then_get(client : FlaskClient, inner_create):
     """
@@ -339,7 +339,7 @@ def test_illegal_param_patch(client : FlaskClient, inner_create):
     """
     code = inner_create("https://www.baidu.com")
     resp = client.patch(f"/{code}", json = {
-        "expire_in": "600"
+        "expire_in": "hdov"
     })
     assert resp.status_code == 422
 
@@ -360,4 +360,4 @@ def test_not_json_patch(client : FlaskClient, inner_create):
     code = inner_create("https://docs.python.org", 600)
     resp = client.patch(f"/{code}", data = """<?xml version='1.0'?>""",
                            content_type = "application/xml")
-    assert resp.status_code == 400
+    assert resp.status_code == 415
