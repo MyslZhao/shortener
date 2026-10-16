@@ -40,7 +40,7 @@ response: {"code": "...", "url": "..."}, 200
 
 """
 import re
-from typing import cast, Any
+from typing import Final
 from flask import Flask, request, jsonify, abort, redirect
 from werkzeug.exceptions import HTTPException
 import mapservice
@@ -61,6 +61,9 @@ URL = re.compile(
     r"$"
 )
 
+UNKNOWN : Final = mapservice.MapService.NoneType.UNKNOWN
+EXPIRED : Final = mapservice.MapService.NoneType.EXPIRED
+
 def create_app(service : mapservice.MapService) -> Flask:
     """创建Shortener应用
 
@@ -70,8 +73,6 @@ def create_app(service : mapservice.MapService) -> Flask:
     Returns:
         Flask: Shortener 应用
     """
-    UNKNOWN = mapservice.MapService.NoneType.UNKNOWN
-    EXPIRED = mapservice.MapService.NoneType.EXPIRED
 
     app = Flask(__name__)
 
@@ -85,8 +86,8 @@ def create_app(service : mapservice.MapService) -> Flask:
         创建短链
 
         """
-        data = cast(dict[str, Any] | None, request.get_json(silent = True))
-        if not data:
+        data = request.get_json(silent = True)
+        if not isinstance(data, dict) or not data:
             abort(400)
 
         if set(data.keys()) != {"url", "expire_in"} :
@@ -107,6 +108,8 @@ def create_app(service : mapservice.MapService) -> Flask:
             return jsonify({'code': code, 'url': url}), (201 if (ok) else 200)
         except (ValueError, TypeError, KeyError ,UnicodeError):
             abort(400)
+        except HTTPException:
+            raise
         except Exception:
             abort(500)
 
@@ -117,14 +120,13 @@ def create_app(service : mapservice.MapService) -> Flask:
         重定向
 
         """
-        code = str(code)
-        if len(code) != 6:
+        if len(code) != service.CODE_LEN:
             abort(404)
 
         res = service.get(code)
-        if (res == UNKNOWN):
+        if res == UNKNOWN:
             abort(404)
-        elif (res == EXPIRED):
+        elif res == EXPIRED:
             abort(410)
         else :
             return redirect(res)
@@ -135,8 +137,7 @@ def create_app(service : mapservice.MapService) -> Flask:
         删除短链
 
         """
-        code = str(code)
-        if len(code) != 6:
+        if len(code) != service.CODE_LEN:
             abort(404)
 
         ok = service.remove(code)
@@ -150,11 +151,11 @@ def create_app(service : mapservice.MapService) -> Flask:
         修改短链
 
         """
-        if len(code) != 6:
+        if len(code) != service.CODE_LEN:
             abort(404)
 
-        data = cast(dict[str, Any] | None, request.get_json())
-        if not data:
+        data = request.get_json()
+        if not isinstance(data, dict) or not data:
             abort(400)
 
         if set(data.keys()) not in [{"url"}, {"expire_in"}]:
@@ -173,14 +174,17 @@ def create_app(service : mapservice.MapService) -> Flask:
                     if param < 0:
                         raise ValueError
             res = service.patch(code, target, param)
-            if (res == UNKNOWN):
-                abort(404)
-            if (res == EXPIRED):
-                abort(410)
-            return jsonify({'code': res[1], 'url': res[0]}), 200
         except (ValueError, TypeError, OverflowError, UnicodeError):
             abort(422)
+        except HTTPException:
+            raise
         except Exception:
             abort(500)
+
+        if res == UNKNOWN:
+            abort(404)
+        if res == EXPIRED:
+            abort(410)
+        return jsonify({'code': res[1], 'url': res[0]}), 200
 
     return app

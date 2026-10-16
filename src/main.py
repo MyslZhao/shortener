@@ -8,7 +8,7 @@ from shortener import create_app
 
 
 if __name__ == "__main__":
-    engine = create_engine("sqlite:///url.db")
+    engine = create_engine("sqlite:///urls.db")
     Url.metadata.create_all(engine)
     service = MapService(engine)
     app = create_app(service)

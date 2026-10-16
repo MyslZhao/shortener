@@ -6,7 +6,7 @@
 
 from enum import Enum, auto
 from datetime import datetime, timedelta
-from typing import Union, Tuple
+from typing import Union, Tuple, Final
 from sqlalchemy import Integer, String, Engine, DateTime
 from sqlalchemy.orm import (DeclarativeBase, sessionmaker,
                             mapped_column, Mapped, Session)
@@ -58,6 +58,7 @@ class MapService:
 
     engine : Engine
     session_factory : sessionmaker[Session] # pylint: disable=unsubscriptable-object
+    CODE_LEN : Final = 6
 
     def __init__(self, engine : Engine) :
         self.engine = engine
@@ -96,23 +97,23 @@ class MapService:
 
                 # 若碰撞则位移
                 while (session.query(Url)
-                 .filter(Url.code == short_source[i:i + 6])
+                 .filter(Url.code == short_source[i:i + self.CODE_LEN])
                  .one_or_none()):
-                    if short_source[i + 7]:
+                    if i + 7 < len(short_source):
                         i += 1
                     else :
                         raise IndexError
                 session.add(Url(
                     url = raw,
-                    code = short_source[i:i + 6],
+                    code = short_source[i:i + self.CODE_LEN],
                     create_at = datetime.now(),
                     expires_at = (datetime.now() +
                                   timedelta(seconds=expire_time))
                 ))
                 session.commit()
-                return (True, short_source[i:i + 6])
+                return (True, short_source[i:i + self.CODE_LEN])
             except IntegrityError:
-                return (False, short_source[i:i + 6])
+                return (False, short_source[i:i + self.CODE_LEN])
             except IndexError:
                 return (False, "")
 
