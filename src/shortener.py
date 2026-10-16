@@ -29,20 +29,23 @@ response: 204 No Content/404 Not Found
 
 4. PATCH /`code`
 
-request: {"url": "..."}/ {"expires_in": ...}
+request: {"url": "..."}/ {"expire_in": ...}
 response: {"code": "...", "url": "..."}, 200
         /404 Not Found
         /400 Bad Request
         /415 Unsupported Media Type
         /422 Unprocessable Content
         /410 Gone
+        /500 Internal Server Error
 
 """
 import re
 from typing import cast, Any
 from flask import Flask, request, jsonify, abort, redirect
+from werkzeug.exceptions import HTTPException
 import mapservice
 
+# HACK: 后续考虑使用第三方库检验
 URL = re.compile(
     r"^https?://"
     r"(?:(?:[A-Za-z0-9._~!$&'()*+,;=:-]|%[0-9A-Fa-f]{2})+@)?"
@@ -67,8 +70,14 @@ def create_app(service : mapservice.MapService) -> Flask:
     Returns:
         Flask: Shortener 应用
     """
+    UNKNOWN = mapservice.MapService.NoneType.UNKNOWN
+    EXPIRED = mapservice.MapService.NoneType.EXPIRED
 
     app = Flask(__name__)
+
+    @app.errorhandler(HTTPException)
+    def handler_http_exception(e):
+        return "", e.code
 
     @app.route("/short", methods = ['POST'])
     def short():
@@ -80,7 +89,7 @@ def create_app(service : mapservice.MapService) -> Flask:
         if not data:
             abort(400)
 
-        if len(data.keys()) != 2 :
+        if set(data.keys()) != {"url", "expire_in"} :
             abort(400)
 
         try:
@@ -96,8 +105,10 @@ def create_app(service : mapservice.MapService) -> Flask:
             if code == "" :
                 raise IndexError
             return jsonify({'code': code, 'url': url}), (201 if (ok) else 200)
-        except BaseException:
+        except (ValueError, TypeError, KeyError ,UnicodeError):
             abort(400)
+        except Exception:
+            abort(500)
 
 
     @app.route("/<code>", methods = ['GET'])
@@ -111,11 +122,9 @@ def create_app(service : mapservice.MapService) -> Flask:
             abort(404)
 
         res = service.get(code)
-        if (res == (mapservice.MapService.
-            NoneType.UNKNOWN)):
+        if (res == UNKNOWN):
             abort(404)
-        elif (res == (mapservice.MapService.
-            NoneType.EXPIRED)):
+        elif (res == EXPIRED):
             abort(410)
         else :
             return redirect(res)
@@ -141,7 +150,6 @@ def create_app(service : mapservice.MapService) -> Flask:
         修改短链
 
         """
-        code = str(code)
         if len(code) != 6:
             abort(404)
 
@@ -149,9 +157,9 @@ def create_app(service : mapservice.MapService) -> Flask:
         if not data:
             abort(400)
 
-        if len(data.keys()) != 1:
+        if set(data.keys()) not in [{"url"}, {"expire_in"}]:
             abort(400)
-        target, param = data.popitem()
+        target, param = next(iter(data.items()))
         if target not in ["url", "expire_in"]:
             abort(400)
 
@@ -160,18 +168,19 @@ def create_app(service : mapservice.MapService) -> Flask:
                 case "url":
                     if not URL.fullmatch(param):
                         raise ValueError
-                    param = str(param)
                 case "expire_in":
                     param = int(param)
+                    if param < 0:
+                        raise ValueError
             res = service.patch(code, target, param)
-            if (res == mapservice.MapService.
-                NoneType.UNKNOWN):
+            if (res == UNKNOWN):
                 abort(404)
-            if (res == mapservice.MapService.
-                NoneType.EXPIRED):
+            if (res == EXPIRED):
                 abort(410)
             return jsonify({'code': res[1], 'url': res[0]}), 200
         except (ValueError, TypeError, OverflowError, UnicodeError):
             abort(422)
+        except Exception:
+            abort(500)
 
     return app
