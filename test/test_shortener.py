@@ -203,6 +203,8 @@ def test_unknown_code_delete(client : FlaskClient):
     resp = client.delete(f"/{code}")
     assert resp.status_code == 404
 
+# TODO: 计划重写 patch 相关测试
+
 def test_create_then_patch_url_then_get(client : FlaskClient):
     """
     正常 patch url 测试

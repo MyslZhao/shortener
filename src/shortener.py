@@ -29,8 +29,8 @@ response: 204 No Content/404 Not Found
 
 4. PATCH /`code`
 
-request: {"url": "..."}/ {"expire_in": ...}
-response: {"code": "...", "url": "..."}, 200
+request: {"expire_in": ...}
+response: 204 No Content
         /404 Not Found
         /400 Bad Request
         /415 Unsupported Media Type
@@ -149,7 +149,7 @@ def create_app(service : mapservice.MapService) -> Flask:
     def update(code):
         """
         修改短链
-
+        TODO: 功能变动，改为延期/提前到期
         """
         if len(code) != service.CODE_LEN:
             abort(404)

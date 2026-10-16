@@ -163,11 +163,10 @@ class MapService:
               target : str,
               param : str | int
               ) -> Union[Tuple[str, str], NoneType]:
-        """更改记录
+        """延期/提前到期
 
         Args:
             code (str): 短链
-            target (str): 更改项
             param (str | int): 目标值
 
         Returns:

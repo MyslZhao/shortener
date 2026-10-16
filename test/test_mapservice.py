@@ -40,6 +40,8 @@ def test_remove_twice(service : MapService):
     assert service.remove(code) is True
     assert service.remove(code) is False
 
+# TODO: 重写 patch 相关测试
+
 def test_patch_expired_returns_expired(service : MapService):
     _, code = service.add("https://github.com", 1)
     sleep(2)
