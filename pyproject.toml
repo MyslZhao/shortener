@@ -21,6 +21,12 @@ load-plugins = ["pylint_per_file_ignores"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 
+[dependency-groups]
+dev = [
+    "pylint>=4.1.3",
+    "pylint-per-file-ignores>=4.0.0",
+]
+
 [tool.pylint.'messages control']
 per-file-ignores = [
     "test/*.py:missing-function-docstring, missing-module-docstring, unused-argument, redefined-outer-name, protected-access"
