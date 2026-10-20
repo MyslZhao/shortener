@@ -203,34 +203,6 @@ def test_unknown_code_delete(client : FlaskClient):
     resp = client.delete(f"/{code}")
     assert resp.status_code == 404
 
-# TODO: 计划重写 patch 相关测试
-
-def test_create_then_patch_url_then_get(client : FlaskClient):
-    """
-    正常 patch url 测试
-    """
-    # 新的url不再重新生成一次短码，沿用该短码
-    # 这可能会导致人为碰撞
-    url = "https://cn.bing.com"
-    new_url = "https://www.baidu.com"
-    resp = client.post("/short", json = {
-        "url": url,
-        "expire_in": 600
-    })
-    assert resp.status_code == 201
-    code = resp.get_json()["code"]
-
-    patch_resp = client.patch(f"/{code}", json = {
-        "url": new_url
-    })
-    assert patch_resp.status_code == 200
-    assert patch_resp.get_json()["code"] == code
-    assert patch_resp.get_json()["url"] == new_url
-
-    get_resp = client.get(f"/{code}")
-    assert get_resp.status_code == 302
-    assert get_resp.headers.get("Location") == new_url
-
 def test_renew_expire_then_get(client : FlaskClient):
     """
     正常续期 patch expire 测试
@@ -246,7 +218,7 @@ def test_renew_expire_then_get(client : FlaskClient):
     patch_resp = client.patch(f"/{code}", json = {
         "expire_in": 700
     })
-    assert patch_resp.status_code == 200
+    assert patch_resp.status_code == 204
     sleep(10)
 
     get_resp = client.get(f"/{code}")
@@ -268,35 +240,10 @@ def test_terminate_expire_then_get(client : FlaskClient):
     patch_resp = client.patch(f"/{code}", json = {
         "expire_in": 0
     })
-    assert patch_resp.status_code == 200
+    assert patch_resp.status_code == 204
 
     get_resp = client.get(f"/{code}")
     assert get_resp.status_code == 410
-
-def test_collide_by_patch(client : FlaskClient):
-    """
-    人为 patch url 碰撞测试
-    """
-    url = "https://github.com"
-    new_url = "https://www.mozilla.org"
-    create_resp = client.post("/short", json = {
-        "url": url,
-        "expire_in": 600
-    })
-    assert create_resp.status_code == 201
-    code = create_resp.get_json()["code"]
-    patch_resp = client.patch(f"/{code}", json = {
-        "url": new_url
-    })
-    assert patch_resp.status_code == 200
-    recreate_resp = client.post("/short", json = {
-        "url": url,
-        "expire_in": 600
-    })
-    # 服务器通过移位避免碰撞，若避免失败则500 Internal Server Error
-    assert recreate_resp.status_code == 201
-    new_code = recreate_resp.get_json()["code"]
-    assert code != new_code
 
 def test_expired_patch(client : FlaskClient):
     """
@@ -351,7 +298,7 @@ def test_unknown_code_patch(client : FlaskClient):
     """
     code = "w24d7g"
     resp = client.patch(f"/{code}", json = {
-        "url": "https://github.com"
+        "expire_in": 600
     })
     assert resp.status_code == 404
 

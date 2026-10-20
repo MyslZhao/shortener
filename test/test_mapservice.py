@@ -17,9 +17,12 @@ def raw_urls() -> list[str]:
         "https://github.com",
         "https://www.bing.cn",
     ]
+    
+def stimulate_sleep(sec : int):
+    sleep(sec)
 
 def test_add_returns_created_flag(service : MapService):
-    created, code = service.add("https://github.com", 600)
+    created = service.add("https://github.com", 600)[0]
     assert created is True
 
 def test_repeat_add_returns_same_code(service : MapService):
@@ -40,12 +43,13 @@ def test_remove_twice(service : MapService):
     assert service.remove(code) is True
     assert service.remove(code) is False
 
-# TODO: 重写 patch 相关测试
-
 def test_patch_expired_returns_expired(service : MapService):
     _, code = service.add("https://github.com", 1)
     sleep(2)
-    assert service.patch(code, "expire_in", 600) == MapService.NoneType.EXPIRED
+    assert service.patch(code, 600) == MapService.NoneType.EXPIRED
 
-def test_patch_unknown_returns_unknown(service : MapService):
-    assert service.patch("not8ex", "url", "https://x.com") == MapService.NoneType.UNKNOWN
+def test_patch_expire_longer_then_get(service : MapService):
+    _, code = service.add("https://github.com", 5)
+    service.patch(code, 600)
+    sleep(10)
+    assert service.get(code) == "https://github.com"

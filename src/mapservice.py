@@ -84,7 +84,7 @@ class MapService:
         """
         with self.session_factory() as session:
             try:
-                if (len(raw) > 50) :
+                if len(raw) > 50 :
                     return (False, "")
                 exist = (session.query(Url)
                          .filter(Url.url == raw)
@@ -160,32 +160,27 @@ class MapService:
 
     def patch(self,
               code : str,
-              target : str,
-              param : str | int
-              ) -> Union[Tuple[str, str], NoneType]:
+              new_expire_in : int
+              ) -> Union[None, NoneType]:
         """延期/提前到期
 
         Args:
             code (str): 短链
-            param (str | int): 目标值
+            new_expire_in (int): 从当前开始, 新的有效期
 
         Returns:
-            Union[Tuple[str, str], NoneType]: 新的网站和对应的短链/ 错误状态
+            Union[None, NoneType]: 操作状态
         """
         with self.session_factory() as session:
             try:
                 obj = (session.query(Url)
                        .filter(Url.code == code)
                        .one())
-                if (obj.expires_at <= datetime.now()):
+                if obj.expires_at < datetime.now():
                     return self.NoneType.EXPIRED
 
-                match target:
-                    case "url":
-                        obj.url = str(param)
-                    case "expire_in":
-                        obj.expires_at = datetime.now() + timedelta(seconds=int(param))
+                obj.expires_at = datetime.now() + timedelta(seconds=new_expire_in)
                 session.commit()
-                return (obj.url, code)
+                return None
             except NoResultFound:
                 return self.NoneType.UNKNOWN

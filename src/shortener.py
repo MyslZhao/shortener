@@ -148,7 +148,7 @@ def create_app(service : mapservice.MapService) -> Flask:
     @app.route("/<code>", methods = ['PATCH'])
     def update(code):
         """
-        修改短链
+        延期/提前到期短链
         TODO: 功能变动，改为延期/提前到期
         """
         if len(code) != service.CODE_LEN:
@@ -158,22 +158,15 @@ def create_app(service : mapservice.MapService) -> Flask:
         if not isinstance(data, dict) or not data:
             abort(400)
 
-        if set(data.keys()) not in [{"url"}, {"expire_in"}]:
+        if set(data.keys()) != {"expire_in"}:
             abort(400)
-        target, param = next(iter(data.items()))
-        if target not in ["url", "expire_in"]:
-            abort(400)
+        _, param = next(iter(data.items()))
 
         try:
-            match target:
-                case "url":
-                    if not URL.fullmatch(param):
-                        raise ValueError
-                case "expire_in":
-                    param = int(param)
-                    if param < 0:
-                        raise ValueError
-            res = service.patch(code, target, param)
+            param = int(param)
+            if param < 0:
+                raise ValueError
+            res = service.patch(code, param)
         except (ValueError, TypeError, OverflowError, UnicodeError):
             abort(422)
         except HTTPException:
@@ -181,10 +174,10 @@ def create_app(service : mapservice.MapService) -> Flask:
         except Exception:
             abort(500)
 
-        if res == UNKNOWN:
+        if res is UNKNOWN:
             abort(404)
-        if res == EXPIRED:
+        if res is EXPIRED:
             abort(410)
-        return jsonify({'code': res[1], 'url': res[0]}), 200
+        return "", 204
 
     return app
