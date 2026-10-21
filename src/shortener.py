@@ -106,7 +106,7 @@ def create_app(service : mapservice.MapService) -> Flask:
             if code == "" :
                 raise IndexError
             return jsonify({'code': code, 'url': url}), (201 if (ok) else 200)
-        except (ValueError, TypeError, KeyError ,UnicodeError):
+        except (ValueError, TypeError, KeyError ,UnicodeError, IndexError):
             abort(400)
         except HTTPException:
             raise

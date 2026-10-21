@@ -1,6 +1,6 @@
 from typing import Any, Generator, Tuple
-from time import sleep
 import pytest
+from freezegun import freeze_time
 from flask import Flask
 from flask.testing import FlaskClient
 from sqlalchemy import create_engine
@@ -154,10 +154,11 @@ def test_expired_code_get(client : FlaskClient, inner_create):
     """
     过期 code get 测试
     """
-    code = inner_create("https://github.com", 1)
-    sleep(2)
-    new_resp = client.get(f"/{code}")
-    assert new_resp.status_code == 410
+    with freeze_time("2026-01-01 00:00:00") as frozen:
+        code = inner_create("https://github.com", 1)
+        frozen.tick(2)
+        new_resp = client.get(f"/{code}")
+        assert new_resp.status_code == 410
 
 
 def test_create_then_delete_then_get(client : FlaskClient):
@@ -207,23 +208,24 @@ def test_renew_expire_then_get(client : FlaskClient):
     """
     正常续期 patch expire 测试
     """
-    url = "https://cn.bing.com"
-    resp = client.post("/short", json = {
-        "url": url,
-        "expire_in": 5
-    })
-    assert resp.status_code == 201
-    code = resp.get_json()["code"]
+    with freeze_time("2026-01-01 00:00:00") as frozen:
+        url = "https://cn.bing.com"
+        resp = client.post("/short", json = {
+            "url": url,
+            "expire_in": 5
+        })
+        assert resp.status_code == 201
+        code = resp.get_json()["code"]
 
-    patch_resp = client.patch(f"/{code}", json = {
-        "expire_in": 700
-    })
-    assert patch_resp.status_code == 204
-    sleep(10)
+        patch_resp = client.patch(f"/{code}", json = {
+            "expire_in": 700
+        })
+        assert patch_resp.status_code == 204
+        frozen.tick(10)
 
-    get_resp = client.get(f"/{code}")
-    assert get_resp.status_code == 302
-    assert get_resp.headers.get("Location") == url
+        get_resp = client.get(f"/{code}")
+        assert get_resp.status_code == 302
+        assert get_resp.headers.get("Location") == url
 
 def test_terminate_expire_then_get(client : FlaskClient):
     """
@@ -250,19 +252,20 @@ def test_expired_patch(client : FlaskClient):
     过期 code patch 测试
     """
     # 新的expire_in应在code的有效期内完成修改来实现续期或提前到期
-    resp = client.post("/short", json = {
-        "url": "https://www.microsoft.com/",
-        "expire_in": 3
-    })
-    assert resp.status_code == 201
-    code = resp.get_json()["code"]
-    sleep(5)
-    patch_resp = client.patch(f"/{code}", json = {
-        "expire_in": 600
-    })
-    assert patch_resp.status_code == 410
-    get_resp = client.get(f"/{code}")
-    assert get_resp.status_code == 410
+    with freeze_time("2026-01-01 00:00:00") as frozen:
+        resp = client.post("/short", json = {
+            "url": "https://www.microsoft.com/",
+            "expire_in": 3
+        })
+        assert resp.status_code == 201
+        code = resp.get_json()["code"]
+        frozen.tick(5)
+        patch_resp = client.patch(f"/{code}", json = {
+            "expire_in": 600
+        })
+        assert patch_resp.status_code == 410
+        get_resp = client.get(f"/{code}")
+        assert get_resp.status_code == 410
 
 def test_empty_json_patch(client : FlaskClient, inner_create):
     """

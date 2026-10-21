@@ -1,5 +1,5 @@
-from time import sleep
 import pytest
+from freezegun import freeze_time
 from sqlalchemy import create_engine
 from mapservice import MapService, Url
 
@@ -17,9 +17,6 @@ def raw_urls() -> list[str]:
         "https://github.com",
         "https://www.bing.cn",
     ]
-    
-def stimulate_sleep(sec : int):
-    sleep(sec)
 
 def test_add_returns_created_flag(service : MapService):
     created = service.add("https://github.com", 600)[0]
@@ -44,12 +41,14 @@ def test_remove_twice(service : MapService):
     assert service.remove(code) is False
 
 def test_patch_expired_returns_expired(service : MapService):
-    _, code = service.add("https://github.com", 1)
-    sleep(2)
-    assert service.patch(code, 600) == MapService.NoneType.EXPIRED
+    with freeze_time("2026-01-01 00:00:00") as frozen:
+        _, code = service.add("https://github.com", 1)
+        frozen.tick(2)
+        assert service.patch(code, 600) == MapService.NoneType.EXPIRED
 
 def test_patch_expire_longer_then_get(service : MapService):
-    _, code = service.add("https://github.com", 5)
-    service.patch(code, 600)
-    sleep(10)
-    assert service.get(code) == "https://github.com"
+    with freeze_time("2026-01-01 00:00:00") as frozen:
+        _, code = service.add("https://github.com", 5)
+        service.patch(code, 600)
+        frozen.tick(5)
+        assert service.get(code) == "https://github.com"
