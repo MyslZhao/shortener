@@ -78,6 +78,7 @@ class MapService:
 
         Args:
             raw (str): 原网址
+            expire_time (int): 过期时间
 
         Returns:
             Tuple[bool, str]: 是否发生创建, 短链
