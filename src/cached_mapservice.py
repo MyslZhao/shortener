@@ -5,8 +5,11 @@
 """
 
 from typing import Union, Tuple
+
 from redis import Redis, ConnectionPool
+
 from mapservice import MapService
+from status import Status, GetResult
 
 class CachedMapService:
     """
@@ -34,7 +37,7 @@ class CachedMapService:
         """
         ...
 
-    def get(self, code : str) -> Union[str, NoneType]:
+    def get(self, code : str) -> GetResult:
         ...
 
     def remove(self, code : str) -> bool:
@@ -44,5 +47,5 @@ class CachedMapService:
     def patch(self,
               code : str,
               new_expire_in : int
-              ) -> Union[None, NoneType]:
+              ) -> Status:
         ...

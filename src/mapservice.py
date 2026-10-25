@@ -4,15 +4,17 @@
 2. MapService 数据操作类
 """
 
-from enum import Enum, auto
 from datetime import datetime, timedelta
-from typing import Union, Tuple, Final
+from typing import Final, NamedTuple, Tuple
+
 from sqlalchemy import Integer, String, Engine, DateTime
 from sqlalchemy.orm import (DeclarativeBase, sessionmaker,
                             mapped_column, Mapped, Session)
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from base62 import encode
 from xxhash import xxh3_64_intdigest
+
+from status import Status, GetResult
 
 class Base(DeclarativeBase):
     """
@@ -48,13 +50,6 @@ class MapService:
     数据库操作类
 
     """
-    class NoneType(Enum):
-        """
-        None状态枚举
-
-        """
-        UNKNOWN = auto()
-        EXPIRED = auto()
 
     engine : Engine
     session_factory : sessionmaker[Session] # pylint: disable=unsubscriptable-object
@@ -119,14 +114,14 @@ class MapService:
                 return (False, "")
 
 
-    def get(self, code : str) -> Union[str, NoneType]:
+    def get(self, code : str) -> GetResult:
         """查询网址
 
         Args:
             code (str): 对应短链
 
         Returns:
-            Union[str, NoneType]: 原网址/ 错误状态
+            NamedTuple : 原链接/操作状态/附加信息
         """
         with self.session_factory() as session:
             try:
@@ -134,10 +129,12 @@ class MapService:
                     .filter(Url.code == code)
                     .one())
                 if result.expires_at < datetime.now() :
-                    return self.NoneType.EXPIRED
-                return result.url
+                    return GetResult(Status.EXPIRED)
+
+                remaining = int((result.expires_at - datetime.now()).total_seconds())
+                return GetResult(Status.SUCCESS, result.url, remaining)
             except NoResultFound:
-                return self.NoneType.UNKNOWN
+                return GetResult(Status.UNKNOWN)
 
     def remove(self, code : str) -> bool:
         """移除记录
@@ -162,7 +159,7 @@ class MapService:
     def patch(self,
               code : str,
               new_expire_in : int
-              ) -> Union[None, NoneType]:
+              ) -> Status:
         """延期/提前到期
 
         Args:
@@ -170,7 +167,7 @@ class MapService:
             new_expire_in (int): 从当前开始, 新的有效期
 
         Returns:
-            Union[None, NoneType]: 操作状态
+            Status: 操作状态
         """
         with self.session_factory() as session:
             try:
@@ -178,10 +175,10 @@ class MapService:
                        .filter(Url.code == code)
                        .one())
                 if obj.expires_at < datetime.now():
-                    return self.NoneType.EXPIRED
+                    return Status.EXPIRED
 
                 obj.expires_at = datetime.now() + timedelta(seconds=new_expire_in)
                 session.commit()
-                return None
+                return Status.SUCCESS
             except NoResultFound:
-                return self.NoneType.UNKNOWN
+                return Status.UNKNOWN

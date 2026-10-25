@@ -40,10 +40,12 @@ response: 204 No Content
 
 """
 import re
-from typing import Final
+
 from flask import Flask, request, jsonify, abort, redirect
 from werkzeug.exceptions import HTTPException
-import mapservice
+
+from mapservice import MapService
+from status import Status
 
 # HACK: 后续考虑使用第三方库检验
 URL = re.compile(
@@ -61,14 +63,11 @@ URL = re.compile(
     r"$"
 )
 
-UNKNOWN : Final = mapservice.MapService.NoneType.UNKNOWN
-EXPIRED : Final = mapservice.MapService.NoneType.EXPIRED
-
-def create_app(service : mapservice.MapService) -> Flask:
+def create_app(service : MapService) -> Flask:
     """创建Shortener应用
 
     Args:
-        service (mapservice.MapService): 业务层
+        service (MapService): 业务层
 
     Returns:
         Flask: Shortener 应用
@@ -124,12 +123,11 @@ def create_app(service : mapservice.MapService) -> Flask:
             abort(404)
 
         res = service.get(code)
-        if res == UNKNOWN:
+        if res.status == Status.UNKNOWN:
             abort(404)
-        elif res == EXPIRED:
+        elif res.status == Status.EXPIRED:
             abort(410)
-        else :
-            return redirect(res)
+        return redirect(res.url)  # type: ignore
 
     @app.route("/<code>", methods = ['DELETE'])
     def remove(code):
@@ -174,9 +172,9 @@ def create_app(service : mapservice.MapService) -> Flask:
         except Exception:
             abort(500)
 
-        if res is UNKNOWN:
+        if res is Status.UNKNOWN:
             abort(404)
-        if res is EXPIRED:
+        if res is Status.EXPIRED:
             abort(410)
         return "", 204
 
