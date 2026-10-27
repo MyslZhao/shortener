@@ -16,8 +16,9 @@ class Status(Enum):
 
 class GetResult(NamedTuple):
     """
-    get 结果包装
+    get 结果闭包
 
+    包含操作状态，原网址和延迟
     """
     status : Status
     url : str | None = None
