@@ -45,6 +45,7 @@ from flask import Flask, request, jsonify, abort, redirect
 from werkzeug.exceptions import HTTPException
 
 from mapservice import MapService
+from cached_mapservice import CachedMapService
 from status import Status
 
 # HACK: 后续考虑使用第三方库检验
@@ -63,7 +64,7 @@ URL = re.compile(
     r"$"
 )
 
-def create_app(service : MapService) -> Flask:
+def create_app(service : MapService | CachedMapService) -> Flask:
     """创建Shortener应用
 
     Args:
@@ -119,7 +120,7 @@ def create_app(service : MapService) -> Flask:
         重定向
 
         """
-        if len(code) != service.CODE_LEN:
+        if len(code) != MapService.CODE_LEN:
             abort(404)
 
         res = service.get(code)
@@ -135,7 +136,7 @@ def create_app(service : MapService) -> Flask:
         删除短链
 
         """
-        if len(code) != service.CODE_LEN:
+        if len(code) != MapService.CODE_LEN:
             abort(404)
 
         ok = service.remove(code)
@@ -149,7 +150,7 @@ def create_app(service : MapService) -> Flask:
         延期/提前到期短链
         TODO: 功能变动，改为延期/提前到期
         """
-        if len(code) != service.CODE_LEN:
+        if len(code) != MapService.CODE_LEN:
             abort(404)
 
         data = request.get_json()
