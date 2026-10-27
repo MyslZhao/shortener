@@ -29,7 +29,7 @@ class Url(Base):
 
     __tablename__ = 'url'
     id : Mapped[int] = mapped_column(Integer, primary_key=True)
-    url : Mapped[str] = mapped_column(String(50), unique = True)
+    url : Mapped[str] = mapped_column(String(2048), unique = True)
     code : Mapped[str] = mapped_column(String, unique = True)
     create_at : Mapped[datetime] = mapped_column(DateTime)
     expires_at : Mapped[datetime] = mapped_column(DateTime)
@@ -80,7 +80,7 @@ class MapService:
         """
         with self.session_factory() as session:
             try:
-                if len(raw) > 50 :
+                if len(raw) > 2048 :
                     return (False, "")
                 exist = (session.query(Url)
                          .filter(Url.url == raw)
