@@ -24,11 +24,11 @@ def main():
     cfg = load_config(args.profile)
     print(f" * profile: {args.profile}, db: {cfg.database_url}")
 
-    engine = create_engine("sqlite:///urls.db")
+    engine = create_engine(cfg.database_url)
     Url.metadata.create_all(engine)
 
     pool = ConnectionPool(
-        host = "localhost", port = 6379, db = 0,
+        host = cfg.redis_host, port = cfg.redis_port, db = cfg.redis_db,
         decode_responses = True,
         max_connections = 20,
     )
