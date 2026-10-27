@@ -2,6 +2,9 @@
 主程序入口
 """
 
+from argparse import ArgumentParser
+from config import load_config
+
 from sqlalchemy import create_engine
 from redis import Redis, ConnectionPool, exceptions as redis_exc
 
@@ -10,6 +13,17 @@ from mapservice import MapService, Url
 from shortener import create_app
 
 def main():
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--profile",
+        default="dev",
+        help="config profile(dev/test/deploy)"
+        )
+    args = parser.parse_args()
+
+    cfg = load_config(args.profile)
+    print(f" * profile: {args.profile}, db: {cfg.database_url}")
+
     engine = create_engine("sqlite:///urls.db")
     Url.metadata.create_all(engine)
 
