@@ -20,9 +20,9 @@ class CachedMapService:
 
     __redis : Redis
 
-    def __init__(self, engine : MapService, redis : Redis ):
-        self.__sql = engine
-        self.__redis = redis
+    def __init__(self, inner : MapService, client : Redis ):
+        self.__sql = inner
+        self.__redis = client
 
     @staticmethod
     def __key(code: str) -> str:
@@ -68,7 +68,7 @@ class CachedMapService:
         if res.status is not Status.SUCCESS:
             return res
 
-        if res.ttl and res.url:
+        if res.ttl is not None and res.ttl > 0 and res.url:
             self.__redis.setex(self.__key(code), res.ttl, res.url)
 
         return res
