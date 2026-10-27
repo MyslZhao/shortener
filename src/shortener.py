@@ -40,10 +40,13 @@ response: 204 No Content
 
 """
 import re
-from typing import Final
+
 from flask import Flask, request, jsonify, abort, redirect
 from werkzeug.exceptions import HTTPException
-import mapservice
+
+from mapservice import MapService
+from cached_mapservice import CachedMapService
+from status import Status
 
 # HACK: 后续考虑使用第三方库检验
 URL = re.compile(
@@ -61,14 +64,11 @@ URL = re.compile(
     r"$"
 )
 
-UNKNOWN : Final = mapservice.MapService.NoneType.UNKNOWN
-EXPIRED : Final = mapservice.MapService.NoneType.EXPIRED
-
-def create_app(service : mapservice.MapService) -> Flask:
+def create_app(service : MapService | CachedMapService) -> Flask:
     """创建Shortener应用
 
     Args:
-        service (mapservice.MapService): 业务层
+        service (MapService): 业务层
 
     Returns:
         Flask: Shortener 应用
@@ -120,16 +120,15 @@ def create_app(service : mapservice.MapService) -> Flask:
         重定向
 
         """
-        if len(code) != service.CODE_LEN:
+        if len(code) != MapService.CODE_LEN:
             abort(404)
 
         res = service.get(code)
-        if res == UNKNOWN:
+        if res.status == Status.UNKNOWN:
             abort(404)
-        elif res == EXPIRED:
+        elif res.status == Status.EXPIRED:
             abort(410)
-        else :
-            return redirect(res)
+        return redirect(res.url)  # type: ignore
 
     @app.route("/<code>", methods = ['DELETE'])
     def remove(code):
@@ -137,7 +136,7 @@ def create_app(service : mapservice.MapService) -> Flask:
         删除短链
 
         """
-        if len(code) != service.CODE_LEN:
+        if len(code) != MapService.CODE_LEN:
             abort(404)
 
         ok = service.remove(code)
@@ -151,7 +150,7 @@ def create_app(service : mapservice.MapService) -> Flask:
         延期/提前到期短链
         TODO: 功能变动，改为延期/提前到期
         """
-        if len(code) != service.CODE_LEN:
+        if len(code) != MapService.CODE_LEN:
             abort(404)
 
         data = request.get_json()
@@ -174,9 +173,9 @@ def create_app(service : mapservice.MapService) -> Flask:
         except Exception:
             abort(500)
 
-        if res is UNKNOWN:
+        if res is Status.UNKNOWN:
             abort(404)
-        if res is EXPIRED:
+        if res is Status.EXPIRED:
             abort(410)
         return "", 204
 

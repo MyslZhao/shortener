@@ -1,9 +1,11 @@
-from typing import Any, Generator, Tuple
+from typing import Any, Generator
+
 import pytest
 from freezegun import freeze_time
 from flask import Flask
 from flask.testing import FlaskClient
 from sqlalchemy import create_engine
+
 from shortener import create_app
 from mapservice import MapService, Url
 
