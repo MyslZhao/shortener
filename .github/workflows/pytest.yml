@@ -2,7 +2,7 @@ name: test
 
 on:
   push:
-    branches: [function-*, repo-*, master]
+    branches: [function-*, master]
   pull_request:
 
 jobs:
