@@ -122,17 +122,22 @@ def test_abnormal_param_create(client : FlaskClient):
     })
     assert wrong_type_resp.status_code == 400
 
-def test_long_url_create(client : FlaskClient):
-    """
-    长度超限url测试
-    """
-    url = ("https://www.sbbcsiubvf.com/uirbchbdsvibesvdbzvibzhbvu" +
-           "irbiubcdlcbzvhbiabweifbvivawcvewbaibcvyirawuiefbviabfiqlceC")
-    resp = client.post("/short", json = {
+@pytest.mark.parametrize("length, expected_status", [
+    (2048, 201),
+    (2049, 400),
+])
+def test_url_length_boundary(client: FlaskClient, length: int, expected_status: int):
+    base = "https://example.com/"
+    url = base + "a" * (length - len(base))
+    assert len(url) == length
+
+    url = f"https://{length}.com/" + "a" * (length - len(f"https://{length}.com/"))
+
+    resp = client.post("/short", json={
         "url": url,
         "expire_in": 600
     })
-    assert resp.status_code == 400
+    assert resp.status_code == expected_status
 
 def test_create_then_get(client : FlaskClient, inner_create):
     """

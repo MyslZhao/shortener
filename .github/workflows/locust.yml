@@ -1,0 +1,89 @@
+name: loadtest
+
+on:
+  pull_request:
+    branches: [master, main]
+
+concurrency:
+  group: loadtest-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  loadtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Wait for redis
+        run: |
+          for i in $(seq 1 30); do
+            if docker exec $(docker ps -q -f name=redis) redis-cli ping 2>/dev/null | grep -q PONG; then
+              echo " * Redis is ready."
+              exit 0
+            fi
+            echo " * Waiting for Redis ($i/30)..."
+            sleep 1
+          done
+          echo " * Redis failed to start."
+          exit 1
+
+      - name: Start Flask
+        run: |
+          rm -f test.db
+          uv run python src/main.py --profile test > server.log 2>&1 &
+          echo $! > server.pid
+
+      - name: Wait for Flask
+        run: |
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:5000/ || true)
+            if [ "$code" = "404" ] || [ "$code" = "200"]; then
+              echo " * Flask is ready (HTTP $code)."
+              exit 0
+            fi
+            echo " * Waiting for Flask ($i/30)..."
+            sleep 1
+          done
+          cat server.log
+          exit 1
+
+      - name: Run Locust
+        run: |
+          uv run locust \
+            -f loadtest/locustfile.py \
+            --host=http://127.0.0.1:5000 \
+            --headless -u 50 -r 10 -t 60s \
+            --only-summary \
+            --exit-code-on-error 1
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          cat server.log || true
+          docker logs $(docker ps -q -f name=redis) || true
+
+      - name: Stop Flask
+        if: always()
+        run: kill $(cat server.pid) 2>/dev/null || true
