@@ -45,7 +45,7 @@ def main():
         service = MapService(engine)
 
     app = create_app(service)
-    app.run()
+    app.run(threaded=True)
 
 if __name__ == "__main__":
     main()
