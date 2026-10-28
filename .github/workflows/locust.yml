@@ -3,6 +3,10 @@ name: loadtest
 on:
   pull_request:
     branches: [master, main]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
 
 concurrency:
   group: loadtest-${{ github.ref }}
